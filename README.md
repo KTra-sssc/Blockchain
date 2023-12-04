@@ -1,11 +1,22 @@
 # Blockchain
 
 ## initialize a module
-    `go mod init github.com/KTra-sssc/Blockchain`
+```sh
+$ go mod init github.com/KTra-sssc/Blockchain
+```
 ## add module requirements and sums
-    `go mod tidy`
+```sh
+$ go mod tidy
+```
 ## compile the code into an executable
-    `go build`
+```sh
+$ go build
+```
 ## run executable file
-    `.\Blockchain.exe {{command}}`
-    E.g: `.\Blockchain.exe printchain` to print all blocks of the blockchain
+```sh
+$ .\Blockchain.exe {{command}}
+```
+E.g: Print all blocks of the blockchain
+```sh
+$ .\Blockchain.exe printchain
+```
