@@ -1,88 +1,74 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
-	"strconv"
+	"encoding/gob"
+	"log"
 	"time"
 )
 
-type Transaction struct {
-	Data []byte
-}
-
+// Block keeps block headers
 type Block struct {
-	// Thời điểm tạo khối
-	Timestamp int64
-	// Danh sách các giao dịch trong khối
-	Transactions []*Transaction
-	// Hash của block trước đó
+	Timestamp     int64
+	Transactions  []*Transaction
 	PrevBlockHash []byte
-	// Hash của block hiện tại
-	Hash []byte
+	Hash          []byte
+	Nonce         int
 }
 
-// Xây dựng cây Merkle từ danh sách các hash
-func ConstructMerkleTree(hashes [][]byte) []byte {
-	if len(hashes) == 0 {
-		return nil
-	}
-	if len(hashes) == 1 {
-		return hashes[0]
-	}
+// Serialize serializes the block
+func (b *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
 
-	var newHashes [][]byte
-
-	for i := 0; i < len(hashes)-1; i += 2 {
-		// Nối hai hash liên tiếp và tính toán hash mới
-		concatenation := append(hashes[i], hashes[i+1]...)
-		hash := sha256.Sum256(concatenation)
-		newHashes = append(newHashes, hash[:])
+	err := encoder.Encode(b)
+	if err != nil {
+		log.Panic(err)
 	}
 
-	// Nếu có số lượng hash lẻ, nhân bản hash cuối cùng
-	if len(hashes)%2 != 0 {
-		newHashes = append(newHashes, hashes[len(hashes)-1])
-	}
-
-	// Thực hiện đệ quy để xây dựng tiếp cây Merkle
-	return ConstructMerkleTree(newHashes)
+	return result.Bytes()
 }
 
-// Tính toán hash gốc của các giao dịch trong Block
+// HashTransactions returns a hash of the transactions in the block
 func (b *Block) HashTransactions() []byte {
 	var txHashes [][]byte
+	var txHash [32]byte
 
 	for _, tx := range b.Transactions {
-		// Tính toán hash của từng giao dịch và thêm vào danh sách hash
-		txHash := sha256.Sum256(tx.Data)
-		txHashes = append(txHashes, txHash[:])
+		txHashes = append(txHashes, tx.ID)
 	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
 
-	// Gọi hàm xây dựng cây Merkle từ danh sách hash
-	return ConstructMerkleTree(txHashes)
+	return txHash[:]
 }
 
-// Tính toán và thiết lập hash cho Block
-func (b *Block) SetHash() {
-	// Kết hợp hash của block trước đó và hash của giao dịch
-	headers := append(b.PrevBlockHash, b.HashTransactions()...)
-	headers = append(headers, []byte(strconv.FormatInt(b.Timestamp, 10))...)
-
-	// Tính toán hash của toàn bộ block và thiết lập vào trường Hash
-	hash := sha256.Sum256(headers)
-	b.Hash = hash[:]
-}
-
-// NewBlock tạo một block mới với thời điểm, danh sách giao dịch và hash của block trước đó
+// NewBlock creates and returns Block
 func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
-	// Khởi tạo block mới
-	block := &Block{
-		Timestamp:     time.Now().Unix(),
-		Transactions:  transactions,
-		PrevBlockHash: prevBlockHash,
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
+	return block
+}
+
+// NewGenesisBlock creates and returns genesis Block
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{})
+}
+
+// DeserializeBlock deserializes a block
+func DeserializeBlock(d []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(&block)
+	if err != nil {
+		log.Panic(err)
 	}
 
-	// Tính toán và thiết lập hash cho block
-	block.SetHash()
-	return block
+	return &block
 }
