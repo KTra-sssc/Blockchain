@@ -12,8 +12,28 @@ func addTransaction(bc *Blockchain, data string) {
 	tx := &Transaction{Data: []byte(data)}
 	currentBlock := bc.Blocks[len(bc.Blocks)-1]
 	currentBlock.Transactions = append(currentBlock.Transactions, tx)
-	fmt.Println("Giao dich duoc them vao khoi hien tai.")
 	currentBlock.SetHash()
+
+	// Cập nhật dữ liệu blockchain trong BoltDB
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("Blockchain"))
+		if err != nil {
+			return err
+		}
+
+		// Chuyển đổi và lưu blockchain đã cập nhật
+		chainData, err := Serialize(bc.Blocks)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Giao dich duoc them vao khoi hien tai.")
+		return b.Put([]byte("chain"), chainData)
+	})
+
+	if err != nil {
+		fmt.Println("Loi cap nhat BoltDB:", err)
+		os.Exit(1)
+	}
 }
 
 func mineBlock(bc *Blockchain) {
