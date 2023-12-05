@@ -3,6 +3,9 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"os"
+
+	"github.com/boltdb/bolt"
 )
 
 func addTransaction(bc *Blockchain, data string) {
@@ -11,7 +14,6 @@ func addTransaction(bc *Blockchain, data string) {
 	currentBlock.Transactions = append(currentBlock.Transactions, tx)
 	fmt.Println("Giao dich duoc them vao khoi hien tai.")
 	currentBlock.SetHash()
-
 }
 
 func mineBlock(bc *Blockchain) {
@@ -22,7 +24,27 @@ func mineBlock(bc *Blockchain) {
 	newBlock := NewBlock([]*Transaction{}, currentBlock.Hash)
 
 	bc.Blocks = append(bc.Blocks, newBlock)
-	fmt.Printf("Khoi %d da duoc dong va khoi moi da tao.\n", len(bc.Blocks)-2)
+
+	// Cập nhật dữ liệu blockchain trong BoltDB
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("Blockchain"))
+		if err != nil {
+			return err
+		}
+
+		// Chuyển đổi và lưu blockchain đã cập nhật
+		chainData, err := Serialize(bc.Blocks)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Khoi %d da duoc dong va khoi moi da tao.\n", len(bc.Blocks)-2)
+		return b.Put([]byte("chain"), chainData)
+	})
+
+	if err != nil {
+		fmt.Println("Loi cap nhat BoltDB:", err)
+		os.Exit(1)
+	}
 }
 
 func printBlockchain(bc *Blockchain) {

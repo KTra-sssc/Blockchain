@@ -20,7 +20,7 @@ func PrintUsage() {
 	fmt.Println("Cac lenh:")
 	fmt.Println("  -create <blockchain name> : Tao blockchain moi.")
 	fmt.Println("  -add <value> -blockchain <blockchain name>: Them giao dich vao blockchain cu the.")
-	//fmt.Println("  -mine <blockchain name>: Khai thac mot blockchain.")
+	fmt.Println("  -mine <blockchain name>: Khai thac mot blockchain.")
 	fmt.Println("  -print <blockchain name>: In thong tin blockchain.")
 	fmt.Println("  -exit - Thoat")
 }
@@ -38,8 +38,8 @@ func (cli *CLI) Run() {
 		cli.createBlockchain()
 	case "-add":
 		cli.addTransaction()
-	// case "-mine":
-	// 	cli.mineBlock()
+	case "-mine":
+		cli.mineBlock()
 	case "-print":
 		cli.printBlockchain()
 	case "-exit":
@@ -122,34 +122,36 @@ func (cli *CLI) addTransaction() {
 	cli.bc = NewBlockchain(db)
 
 	// Tạo một giao dịch mới
-	transaction := &Transaction{Data: []byte(value)}
+	//transaction := &Transaction{Data: []byte(value)}
 
 	// Thêm giao dịch vào khối hiện tại
-	cli.bc.AddBlock([]*Transaction{transaction})
+	//cli.bc.AddBlock([]*Transaction{transaction})
 
-	fmt.Println("Giao dich duoc them vao khoi hien tai.")
+	addTransaction(cli.bc, value)
+	//mineBlock(cli.bc)
+
+	//fmt.Println("Giao dich duoc them vao khoi hien tai.")
 }
 
-// mineBlock mines a new block
-// func (cli *CLI) mineBlock() {
-// 	if len(os.Args) < 3 {
-// 		fmt.Println("Please provide a blockchain name.")
-// 		os.Exit(1)
-// 	}
+func (cli *CLI) mineBlock() {
+	if len(os.Args) < 3 {
+		fmt.Println("Please provide a blockchain name.")
+		os.Exit(1)
+	}
 
-// 	blockchainName := os.Args[2]
+	blockchainName := os.Args[2]
 
-// 	db, err := OpenDB(blockchainName)
-// 	if err != nil {
-// 		fmt.Println("Error opening database:", err)
-// 		os.Exit(1)
-// 	}
-// 	defer db.Close()
+	db, err := OpenDB(blockchainName)
+	if err != nil {
+		fmt.Println("Error opening database:", err)
+		os.Exit(1)
+	}
+	defer db.Close()
 
-// 	cli.bc = NewBlockchain(db)
+	cli.bc = NewBlockchain(db)
 
-// 	mineBlock(cli.bc)
-// }
+	mineBlock(cli.bc)
+}
 
 // In ra trạng thái hiện tại của blockchain
 func (cli *CLI) printBlockchain() {
