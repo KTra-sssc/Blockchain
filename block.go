@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"strconv"
 	"time"
@@ -17,49 +18,74 @@ type Block struct {
 	Transactions []*Transaction
 	// Hash của block trước đó
 	PrevBlockHash []byte
+	//merkle tree
+	MerkleRoot *MerkleTree
 	// Hash của block hiện tại
 	Hash []byte
 }
 
 // Xây dựng cây Merkle từ danh sách các hash
-func ConstructMerkleTree(hashes [][]byte) []byte {
-	if len(hashes) == 0 {
-		return nil
-	}
-	if len(hashes) == 1 {
-		return hashes[0]
-	}
+// func ConstructMerkleTree(hashes [][]byte) []byte {
+// 	if len(hashes) == 0 {
+// 		return nil
+// 	}
+// 	if len(hashes) == 1 {
+// 		return hashes[0]
+// 	}
 
-	var newHashes [][]byte
+// 	var newHashes [][]byte
 
-	for i := 0; i < len(hashes)-1; i += 2 {
-		// Nối hai hash liên tiếp và tính toán hash mới
-		concatenation := append(hashes[i], hashes[i+1]...)
-		hash := sha256.Sum256(concatenation)
-		newHashes = append(newHashes, hash[:])
-	}
+// 	for i := 0; i < len(hashes)-1; i += 2 {
+// 		// Nối hai hash liên tiếp và tính toán hash mới
+// 		concatenation := append(hashes[i], hashes[i+1]...)
+// 		hash := sha256.Sum256(concatenation)
+// 		newHashes = append(newHashes, hash[:])
+// 	}
 
-	// Nếu có số lượng hash lẻ, nhân bản hash cuối cùng
-	if len(hashes)%2 != 0 {
-		newHashes = append(newHashes, hashes[len(hashes)-1])
-	}
+// 	// Nếu có số lượng hash lẻ, nhân bản hash cuối cùng
+// 	if len(hashes)%2 != 0 {
+// 		newHashes = append(newHashes, hashes[len(hashes)-1])
+// 	}
 
-	// Thực hiện đệ quy để xây dựng tiếp cây Merkle
-	return ConstructMerkleTree(newHashes)
-}
+// 	// Thực hiện đệ quy để xây dựng tiếp cây Merkle
+// 	return ConstructMerkleTree(newHashes)
+// }
 
 // Tính toán hash gốc của các giao dịch trong Block
+// func (b *Block) HashTransactions() []byte {
+// 	var txHashes [][]byte
+
+// 	for _, tx := range b.Transactions {
+// 		// Tính toán hash của từng giao dịch và thêm vào danh sách hash
+// 		txHash := sha256.Sum256(tx.Data)
+// 		txHashes = append(txHashes, txHash[:])
+// 	}
+
+// 	// Gọi hàm xây dựng cây Merkle từ danh sách hash
+// 	return ConstructMerkleTree(txHashes)
+// }
+
 func (b *Block) HashTransactions() []byte {
 	var txHashes [][]byte
+	var txHash [32]byte
 
 	for _, tx := range b.Transactions {
-		// Tính toán hash của từng giao dịch và thêm vào danh sách hash
-		txHash := sha256.Sum256(tx.Data)
-		txHashes = append(txHashes, txHash[:])
+		txHashes = append(txHashes, tx.Data)
 	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
 
-	// Gọi hàm xây dựng cây Merkle từ danh sách hash
-	return ConstructMerkleTree(txHashes)
+	return txHash[:]
+}
+
+func (b *Block) HashTransactionsWithMerkle() *MerkleTree {
+	var txs [][]byte
+
+	for _, tx := range b.Transactions {
+		txs = append(txs, tx.Data)
+	}
+	merkle_tree := CreateMerkleTree(txs)
+
+	return merkle_tree
 }
 
 // Tính toán và thiết lập hash cho Block
@@ -67,7 +93,7 @@ func (b *Block) SetHash() {
 	// Kết hợp hash của block trước đó và hash của giao dịch
 	headers := append(b.PrevBlockHash, b.HashTransactions()...)
 	headers = append(headers, []byte(strconv.FormatInt(b.Timestamp, 10))...)
-
+	headers = append(headers, b.MerkleRoot.Root.Data...)
 	// Tính toán hash của toàn bộ block và thiết lập vào trường Hash
 	hash := sha256.Sum256(headers)
 	b.Hash = hash[:]
@@ -80,8 +106,10 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
 		Timestamp:     time.Now().Unix(),
 		Transactions:  transactions,
 		PrevBlockHash: prevBlockHash,
+		MerkleRoot:    nil,
 	}
-
+	//tạo merkle tree cho block
+	block.MerkleRoot = block.HashTransactionsWithMerkle()
 	// Tính toán và thiết lập hash cho block
 	block.SetHash()
 	return block
