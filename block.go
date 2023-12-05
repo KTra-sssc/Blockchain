@@ -24,47 +24,6 @@ type Block struct {
 	Hash []byte
 }
 
-// Xây dựng cây Merkle từ danh sách các hash
-// func ConstructMerkleTree(hashes [][]byte) []byte {
-// 	if len(hashes) == 0 {
-// 		return nil
-// 	}
-// 	if len(hashes) == 1 {
-// 		return hashes[0]
-// 	}
-
-// 	var newHashes [][]byte
-
-// 	for i := 0; i < len(hashes)-1; i += 2 {
-// 		// Nối hai hash liên tiếp và tính toán hash mới
-// 		concatenation := append(hashes[i], hashes[i+1]...)
-// 		hash := sha256.Sum256(concatenation)
-// 		newHashes = append(newHashes, hash[:])
-// 	}
-
-// 	// Nếu có số lượng hash lẻ, nhân bản hash cuối cùng
-// 	if len(hashes)%2 != 0 {
-// 		newHashes = append(newHashes, hashes[len(hashes)-1])
-// 	}
-
-// 	// Thực hiện đệ quy để xây dựng tiếp cây Merkle
-// 	return ConstructMerkleTree(newHashes)
-// }
-
-// Tính toán hash gốc của các giao dịch trong Block
-// func (b *Block) HashTransactions() []byte {
-// 	var txHashes [][]byte
-
-// 	for _, tx := range b.Transactions {
-// 		// Tính toán hash của từng giao dịch và thêm vào danh sách hash
-// 		txHash := sha256.Sum256(tx.Data)
-// 		txHashes = append(txHashes, txHash[:])
-// 	}
-
-// 	// Gọi hàm xây dựng cây Merkle từ danh sách hash
-// 	return ConstructMerkleTree(txHashes)
-// }
-
 func (b *Block) HashTransactions() []byte {
 	var txHashes [][]byte
 	var txHash [32]byte

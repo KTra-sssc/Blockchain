@@ -1,18 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"fmt"
-	"os"
 )
 
-func addTransaction(bc *Blockchain) {
-	fmt.Print("Nhap du lieu giao dich: ")
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	data := scanner.Text()
-
+func addTransaction(bc *Blockchain, data string) {
 	tx := &Transaction{Data: []byte(data)}
 	currentBlock := bc.Blocks[len(bc.Blocks)-1]
 	currentBlock.Transactions = append(currentBlock.Transactions, tx)
