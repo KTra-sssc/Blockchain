@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
+	//"strconv"
 )
 
 // CLI responsible for processing command line arguments
@@ -58,8 +58,9 @@ func (cli *CLI) printChain() {
 
 		fmt.Printf("Prev. hash: %x\n", block.PrevBlockHash)
 		fmt.Printf("Hash: %x\n", block.Hash)
-		pow := NewProofOfWork(block)
-		fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))
+		fmt.Printf("Merkle Root: %x\n", block.MerkleRoot.Root.Data)
+		//pow := NewProofOfWork(block)
+		//fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))
 		fmt.Println()
 
 		if len(block.PrevBlockHash) == 0 {

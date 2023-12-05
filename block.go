@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"log"
 	"time"
 )
@@ -12,9 +13,10 @@ import (
 type Block struct {
 	Timestamp     int64
 	Transactions  []*Transaction
+	MerkleRoot    *MerkleTree
 	PrevBlockHash []byte
 	Hash          []byte
-	Nonce         int
+	//Nonce         int
 }
 
 // Serialize serializes the block
@@ -43,14 +45,49 @@ func (b *Block) HashTransactions() []byte {
 	return txHash[:]
 }
 
+func (b *Block) HashTransactionsWithMerkle() *MerkleTree {
+	var txs [][]byte
+
+	for _, tx := range b.Transactions {
+		txs = append(txs, tx.ID)
+	}
+	merkle_tree := CreateMerkleTree(txs)
+
+	return merkle_tree
+}
+
+// Run performs a proof-of-work
+func (block *Block) HashBlock() []byte {
+	var hash [32]byte
+
+	data := bytes.Join(
+		[][]byte{
+			block.PrevBlockHash,
+			block.HashTransactions(),
+			IntToHex(block.Timestamp),
+			block.MerkleRoot.Root.Data,
+		},
+		[]byte{},
+	)
+
+	hash = sha256.Sum256(data)
+	fmt.Printf("\r%x", hash)
+
+	fmt.Print("\n\n")
+
+	return hash[:]
+}
+
 // NewBlock creates and returns Block
 func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
-	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
+	block := &Block{time.Now().Unix(), transactions, nil, prevBlockHash, []byte{}}
+	//pow := NewProofOfWork(block)
+	//nonce,
+	//hash := pow.Run()
+	block.MerkleRoot = block.HashTransactionsWithMerkle()
+	block.Hash = block.HashBlock()
 
-	block.Hash = hash[:]
-	block.Nonce = nonce
+	//block.Nonce = nonce
 
 	return block
 }
